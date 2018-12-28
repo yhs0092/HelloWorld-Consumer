@@ -9,19 +9,32 @@ import org.apache.servicecomb.provider.rest.common.RestSchema;
 import org.apache.servicecomb.provider.springmvc.reference.RestTemplateBuilder;
 import org.springframework.web.client.RestTemplate;
 
+import com.netflix.config.DynamicLongProperty;
+import com.netflix.config.DynamicPropertyFactory;
+
 import training.demo.provider.HelloServiceIntf;
 
 @RestSchema(schemaId = "consumer")
 @Path("/consumer")
 public class ConsumerService {
+  private RestTemplate restTemplate = RestTemplateBuilder.create();
+
   @RpcReference(microserviceName = "provider", schemaId = "hello")
   private HelloServiceIntf helloService;
 
-  private RestTemplate restTemplate = RestTemplateBuilder.create();
+  private DynamicLongProperty helloDelay =
+      DynamicPropertyFactory.getInstance().getLongProperty("delay.hello", 0);
 
   @Path("/hello")
   @GET
   public String hello(@QueryParam("name") String name) {
+    if (helloDelay.get() > 0) {
+      try {
+        Thread.sleep(helloDelay.get());
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
     return helloService.sayHello(name);
   }
 
